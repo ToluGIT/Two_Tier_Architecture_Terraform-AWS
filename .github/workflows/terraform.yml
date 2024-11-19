@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch: # Allows manual triggering for destroy
 
 jobs:
   terraform:
@@ -68,6 +69,30 @@ jobs:
 
     - name: Terraform Output
       run: terraform output
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  terraform-destroy:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.destroy == 'true' # Only run if manually triggered with destroy input set to true
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.9.8 
+
+    - name: Terraform Init
+      run: terraform init
+      working-directory: ../../Two_Tier_Architecture_Terraform-AWS/Two_Tier_Architecture_Terraform-AWS
+
+    - name: Terraform Destroy
+      run: terraform destroy -auto-approve
+      working-directory: ../../Two_Tier_Architecture_Terraform-AWS/Two_Tier_Architecture_Terraform-AWS
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
