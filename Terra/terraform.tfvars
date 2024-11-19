@@ -1,0 +1,17 @@
+vpc-cidr-block   = "10.0.0.0/16"
+vpc-name         = "vpc-high-available"
+igw-name         = "igw-high-available"
+web-subnet1-cidr = "10.0.1.0/24"
+web-subnet1-name = "web-subnet-1"
+web-subnet2-cidr = "10.0.2.0/24"
+web-subnet2-name = "web-subnet-2"
+az-1             = "us-east-1a"
+az-2             = "us-east-1b"
+ami_id           = "ami-012967cc5a8c9f891"
+instance_type    = "t2.micro"
+desired_capacity = 2
+min_size         = 1
+max_size         = 4
+volume_type      = "gp2"
+volume_size      = 20
+device_name      = "/dev/xvda"
