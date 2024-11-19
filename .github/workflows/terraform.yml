@@ -3,11 +3,16 @@ name: Terraform CI/CD
 on:
   push:
     branches:
-      - main 
+      - main
   pull_request:
     branches:
       - main
-  workflow_dispatch: # Allows manual triggering for destroy
+  workflow_dispatch:
+    inputs:
+      destroy:
+        description: "Run terraform destroy (set to 'true' to trigger destroy job)"
+        required: false
+        default: "false"
 
 jobs:
   terraform:
@@ -15,7 +20,7 @@ jobs:
 
     env:
       TF_LOG: INFO
-      AWS_REGION: ${{ secrets.AWS_REGION }} 
+      AWS_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
     - name: Checkout code
@@ -24,12 +29,12 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
       with:
-        terraform_version: 1.9.8 
+        terraform_version: 1.9.8
 
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
-        python-version: '3.12' 
+        python-version: '3.12'
 
     - name: Install Checkov
       run: pip install checkov
@@ -75,7 +80,7 @@ jobs:
 
   terraform-destroy:
     runs-on: ubuntu-latest
-    if: github.event.inputs.destroy == 'true' # Only run if manually triggered with destroy input set to true
+    if: github.event.inputs.destroy == 'true' 
 
     steps:
     - name: Checkout code
@@ -84,7 +89,7 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
       with:
-        terraform_version: 1.9.8 
+        terraform_version: 1.9.8
 
     - name: Terraform Init
       run: terraform init
