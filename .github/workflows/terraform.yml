@@ -44,9 +44,16 @@ jobs:
       uses: bridgecrewio/checkov-action@master
       with:
         directory: ./Terra
-        output_format: sarif # Ensure SARIF format is generated for upload
-      continue-on-error: true  # This allows the workflow to continue even if this step fails
-
+        output_format: sarif # Generate SARIF format for security scanning results
+      continue-on-error: true  # Continue even if this step fails
+      
+    - name: Install Checkov
+      run: pip install checkov
+    
+    - name: Run Checkov with Custom Policy
+      run: checkov --directory ./Terra --external-checks-dir .checkov/custom_policies --output json > checkov-custom-report.json || true
+      # This step runs Checkov with the custom policy directory you created, allowing you to enforce additional checks.
+      # `|| true` ensures that any failure in this step does not block the next steps.
 
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v3
