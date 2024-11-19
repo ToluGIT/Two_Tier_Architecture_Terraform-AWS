@@ -45,7 +45,7 @@ jobs:
       with:
         directory: ./Terra
         output_format: sarif # Generate SARIF format for security scanning results
-      continue-on-error: true  # Continue even if this step fails
+      continue-on-error: true  
       
     - name: Install Checkov
       run: pip install checkov
@@ -53,7 +53,6 @@ jobs:
     - name: Run Checkov with Custom Policy
       run: checkov --directory ./Terra --external-checks-dir .checkov/custom_policies --output json > checkov-custom-report.json || true
       # This step runs Checkov with the custom policy directory you created, allowing you to enforce additional checks.
-      # `|| true` ensures that any failure in this step does not block the next steps.
 
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v3
@@ -121,18 +120,13 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
-        
+
     - name: Terraform Init
       run: terraform init
       working-directory: ./Terra
 
-    - name: List Managed Resources
-      run: terraform state list
-      working-directory: ./Terra
-
-    - name: Terraform Destroy with Debug Logging
+    - name: Terraform Destroy
       run: |
-        export TF_LOG=DEBUG
         terraform destroy -auto-approve
       working-directory: ./Terra
       env:
