@@ -46,7 +46,13 @@ jobs:
         directory: ./Terra
         output_format: sarif # Generate SARIF format for security scanning results
       continue-on-error: true  
-      
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v3
+      if: success() || failure()
+      with:
+        sarif_file: results.sarif
+        
     - name: Install Checkov
       run: pip install checkov
     
@@ -54,11 +60,11 @@ jobs:
       run: checkov --directory ./Terra --external-checks-dir .checkov/custom_policies --output json > checkov-custom-report.json || true
       # This step runs Checkov with the custom policy directory you created, allowing you to enforce additional checks.
 
-    - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v3
-      if: success() || failure()
+    - name: Upload Checkov Report
+      uses: actions/upload-artifact@v3
       with:
-        sarif_file: results.sarif
+        name: checkov-report
+        path: checkov-report.json
         
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
