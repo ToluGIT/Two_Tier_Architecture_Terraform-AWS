@@ -119,8 +119,14 @@ jobs:
       run: terraform init
       working-directory: ./Terra
 
-    - name: Terraform Destroy
-      run: terraform destroy -auto-approve
+    - name: List Managed Resources
+      run: terraform state list
+      working-directory: ./Terra
+
+    - name: Terraform Destroy with Debug Logging
+      run: |
+        export TF_LOG=DEBUG
+        terraform destroy -auto-approve
       working-directory: ./Terra
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
