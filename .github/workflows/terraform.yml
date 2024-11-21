@@ -40,9 +40,9 @@ jobs:
       with:
         directory: ${{ env.TERRAFORM_DIRECTORY }}
         output_format: sarif
-        external-checks-dir: .checkov/custom_policies
+        external_checks_dirs: .checkov/custom_policies  
         output_file_path: checkov-report.sarif
-        upload-sarif: true
+        upload_sarif: true  
       continue-on-error: true
 
     - name: Upload Checkov SARIF Report Artifact
