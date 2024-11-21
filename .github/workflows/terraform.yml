@@ -16,6 +16,7 @@ on:
 
 jobs:
   terraform:
+    if: github.event.inputs.destroy != 'true'  
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,6 +28,9 @@ jobs:
       TERRAFORM_DIRECTORY: ./Terra
 
     steps:
+    - name: Debug Destroy Input
+      run: echo "Destroy input: ${{ github.event.inputs.destroy }}"
+
     - name: Checkout code
       uses: actions/checkout@v3
 
@@ -46,7 +50,7 @@ jobs:
 
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v3
-      if: success() || failure()
+      if: always()
       with:
         sarif_file: results.sarif
 
@@ -89,13 +93,18 @@ jobs:
       working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
   terraform-destroy:
+    if: github.event.inputs.destroy == 'true'  
     runs-on: ubuntu-latest
-    if: github.event.inputs.destroy == 'true'
 
     env:
+      TF_LOG: INFO
+      AWS_REGION: ${{ secrets.AWS_REGION }}
       TERRAFORM_DIRECTORY: ./Terra
 
     steps:
+    - name: Debug Destroy Input
+      run: echo "Destroy input: ${{ github.event.inputs.destroy }}"
+
     - name: Checkout code
       uses: actions/checkout@v3
 
