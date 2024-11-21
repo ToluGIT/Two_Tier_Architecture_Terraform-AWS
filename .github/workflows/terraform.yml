@@ -99,9 +99,6 @@ jobs:
       TERRAFORM_DIRECTORY: ./Terra
 
     steps:
-    - name: Debug Destroy Input
-      run: echo "Destroy input: ${{ github.event.inputs.destroy }}"
-
     - name: Checkout code
       uses: actions/checkout@v3
 
