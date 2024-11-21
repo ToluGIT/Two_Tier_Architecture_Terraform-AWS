@@ -24,6 +24,7 @@ jobs:
     env:
       TF_LOG: INFO
       AWS_REGION: ${{ secrets.AWS_REGION }}
+      TERRAFORM_DIR: ./Terra
 
     steps:
     - name: Checkout code
@@ -39,33 +40,31 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Run Checkov for Security Scanning
-      id: checkov
-      uses: bridgecrewio/checkov-action@master
-      with:
-        directory: ./Terra
-        output_format: sarif # Generate SARIF format for security scanning results
-      continue-on-error: true  
+    - name: Install Checkov
+      run: pip install checkov
+
+    - name: Run Checkov with Custom Policies
+      run: |
+        checkov --directory ${{ env.TERRAFORM_DIR }} \
+                --external-checks-dir .checkov/custom_policies \
+                --output-file-path checkov_results \
+                --output sarif,json
+      continue-on-error: true
+
+    - name: List files after Checkov run
+      run: find . -type f
 
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v3
-      if: success() || failure()
       with:
-        sarif_file: results.sarif
-        
-    - name: Install Checkov
-      run: pip install checkov
-    
-    - name: Run Checkov with Custom Policy
-      run: checkov --directory ./Terra --external-checks-dir .checkov/custom_policies --output json > checkov-custom-report.json || true
-      # This step runs Checkov with the custom policy directory you created, allowing you to enforce additional checks.
+        sarif_file: checkov_results.sarif
 
-    - name: Upload Checkov Report
+    - name: Upload Checkov JSON Report
       uses: actions/upload-artifact@v3
       with:
         name: checkov-report
-        path: checkov-report.json
-        
+        path: checkov_results.json
+
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
       with:
@@ -75,66 +74,58 @@ jobs:
 
     - name: Terraform Init
       run: terraform init
-      working-directory: ./Terra
+      working-directory: ${{ env.TERRAFORM_DIR }}
 
     - name: Terraform Format Check
       run: terraform fmt -check
-      working-directory: ./Terra
+      working-directory: ${{ env.TERRAFORM_DIR }}
 
     - name: Terraform Validate
       run: terraform validate
-      working-directory: ./Terra
+      working-directory: ${{ env.TERRAFORM_DIR }}
 
     - name: Terraform Plan
       run: terraform plan -out=tfplan
-      working-directory: ./Terra
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      working-directory: ${{ env.TERRAFORM_DIR }}
 
     - name: Terraform Apply
       if: github.event_name == 'push'
       run: terraform apply -auto-approve tfplan
-      working-directory: ./Terra
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      working-directory: ${{ env.TERRAFORM_DIR }}
 
     - name: Terraform Output
       run: terraform output
-      working-directory: ./Terra
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      working-directory: ${{ env.TERRAFORM_DIR }}
 
   terraform-destroy:
     runs-on: ubuntu-latest
     if: github.event.inputs.destroy == 'true'
 
+    env:
+      TF_LOG: INFO
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      TERRAFORM_DIR: ./Terra
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.9.8
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.9.8
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Terraform Init
-        run: terraform init
-        working-directory: ./Terra
+    - name: Terraform Init
+      run: terraform init
+      working-directory: ${{ env.TERRAFORM_DIR }}
 
-      - name: Terraform Refresh
-        run: terraform refresh
-        working-directory: ./Terra
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve
-        working-directory: ./Terra
+    - name: Terraform Destroy
+      run: terraform destroy -auto-approve
+      working-directory: ${{ env.TERRAFORM_DIR }}
