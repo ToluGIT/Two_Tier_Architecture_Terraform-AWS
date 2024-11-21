@@ -24,7 +24,6 @@ jobs:
     env:
       TF_LOG: INFO
       AWS_REGION: ${{ secrets.AWS_REGION }}
-      TERRAFORM_DIR: ./Terra
 
     steps:
     - name: Checkout code
@@ -35,29 +34,38 @@ jobs:
       with:
         terraform_version: 1.9.8
 
-    - name: Run Checkov for Security Scanning with Custom Policies
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.12'
+
+    - name: Run Checkov for Security Scanning
+      id: checkov
       uses: bridgecrewio/checkov-action@master
       with:
-        directory: ${{ env.TERRAFORM_DIR }}
-        output_format: sarif,json
-        external_checks_dir: .checkov/custom_policies
-      continue-on-error: true
-
-    - name: List files for debugging
-      run: ls -R
-      shell: bash
+        directory: ./Terra
+        output_format: sarif # Generate SARIF format for security scanning results
+      continue-on-error: true  
 
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v3
+      if: success() || failure()
       with:
         sarif_file: results.sarif
+        
+    - name: Install Checkov
+      run: pip install checkov
+    
+    - name: Run Checkov with Custom Policy
+      run: checkov --directory ./Terra --external-checks-dir .checkov/custom_policies --output json > checkov-custom-report.json || true
+      # This step runs Checkov with the custom policy directory you created, allowing you to enforce additional checks.
 
-    - name: Upload Checkov JSON Report
+    - name: Upload Checkov Report
       uses: actions/upload-artifact@v3
       with:
         name: checkov-report
-        path: results_json.json
-
+        path: checkov-report.json
+        
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
       with:
@@ -67,38 +75,42 @@ jobs:
 
     - name: Terraform Init
       run: terraform init
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ./Terra
 
     - name: Terraform Format Check
       run: terraform fmt -check
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ./Terra
 
     - name: Terraform Validate
       run: terraform validate
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ./Terra
 
     - name: Terraform Plan
       run: terraform plan -out=tfplan
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ./Terra
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Terraform Apply
       if: github.event_name == 'push'
       run: terraform apply -auto-approve tfplan
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ./Terra
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Terraform Output
       run: terraform output
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ./Terra
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   terraform-destroy:
     runs-on: ubuntu-latest
     if: github.event.inputs.destroy == 'true'
 
-    env:
-      TF_LOG: INFO
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      TERRAFORM_DIR: ./Terra
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -117,8 +129,12 @@ jobs:
 
     - name: Terraform Init
       run: terraform init
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ./Terra
 
     - name: Terraform Destroy
-      run: terraform destroy -auto-approve
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      run: |
+        terraform destroy -auto-approve
+      working-directory: ./Terra
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
