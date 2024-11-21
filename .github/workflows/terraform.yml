@@ -38,16 +38,17 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
-        python-version: '3.11'
+        python-version: '3.11'  # Use a stable Python version
 
     - name: Install Checkov
       run: pip install checkov
 
     - name: Run Checkov with Custom Policies
       run: |
-        checkov --directory ${{ env.TERRAFORM_DIR }} \
+        checkov --quiet --directory ${{ env.TERRAFORM_DIR }} \
                 --external-checks-dir .checkov/custom_policies \
-                --output sarif > checkov_results.sarif
+                --output sarif \
+                --output-file-path checkov_results.sarif
       continue-on-error: true
 
     - name: List files after Checkov run
