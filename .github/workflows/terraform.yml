@@ -36,20 +36,25 @@ jobs:
         terraform_version: 1.9.8
 
     - name: Run Checkov for Security Scanning
-      uses: bridgecrewio/checkov-action@master
+      uses: bridgecrewio/checkov-action@v12
       with:
         directory: ${{ env.TERRAFORM_DIRECTORY }}
-        output_format: sarif
-        external_checks_dirs: .checkov/custom_policies  
-        output_file_path: checkov-report.sarif
-        upload_sarif: true  
+        output_format: cli,sarif
+        output_file_path: console,results.sarif
+        external_checks_dirs: .checkov/custom_policies
       continue-on-error: true
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v2
+      if: success() || failure()
+      with:
+        sarif_file: results.sarif
 
     - name: Upload Checkov SARIF Report Artifact
       uses: actions/upload-artifact@v3
       with:
         name: checkov-sarif-report
-        path: checkov-report.sarif
+        path: results.sarif
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
