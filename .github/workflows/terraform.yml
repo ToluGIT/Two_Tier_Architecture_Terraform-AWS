@@ -48,7 +48,8 @@ jobs:
         checkov --directory ${{ env.TERRAFORM_DIR }} \
                 --external-checks-dir .checkov/custom_policies \
                 --output-file-path checkov_results \
-                --output sarif,json
+                --output sarif \
+                --output json
       continue-on-error: true
 
     - name: List files after Checkov run
