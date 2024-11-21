@@ -38,7 +38,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
-        python-version: '3.12'
+        python-version: '3.11'  # Use a stable Python version
 
     - name: Install Checkov
       run: pip install checkov
@@ -47,9 +47,8 @@ jobs:
       run: |
         checkov --directory ${{ env.TERRAFORM_DIR }} \
                 --external-checks-dir .checkov/custom_policies \
-                --output-file-path checkov_results \
                 --output sarif \
-                --output json
+                --output-file-path checkov_results
       continue-on-error: true
 
     - name: List files after Checkov run
@@ -59,12 +58,6 @@ jobs:
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: checkov_results.sarif
-
-    - name: Upload Checkov JSON Report
-      uses: actions/upload-artifact@v3
-      with:
-        name: checkov-report
-        path: checkov_results.json
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
