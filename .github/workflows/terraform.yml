@@ -24,7 +24,7 @@ jobs:
     env:
       TF_LOG: INFO
       AWS_REGION: ${{ secrets.AWS_REGION }}
-      TERRAFORM_DIR: ./Terra
+      TERRAFORM_DIRECTORY: ./Terra
 
     steps:
     - name: Checkout code
@@ -35,29 +35,21 @@ jobs:
       with:
         terraform_version: 1.9.8
 
-    - name: Set up Python
-      uses: actions/setup-python@v3
+    - name: Run Checkov for Security Scanning
+      uses: bridgecrewio/checkov-action@master
       with:
-        python-version: '3.11'  # Use a stable Python version
-
-    - name: Install Checkov
-      run: pip install checkov
-
-    - name: Run Checkov with Custom Policies
-      run: |
-        checkov --quiet --directory ${{ env.TERRAFORM_DIR }} \
-                --external-checks-dir .checkov/custom_policies \
-                --output sarif \
-                --output-file-path checkov_results.sarif
+        directory: ${{ env.TERRAFORM_DIRECTORY }}
+        output_format: sarif
+        external-checks-dir: .checkov/custom_policies
+        output_file_path: checkov-report.sarif
+        upload-sarif: true
       continue-on-error: true
 
-    - name: List files after Checkov run
-      run: find . -type f
-
-    - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v3
+    - name: Upload Checkov SARIF Report Artifact
+      uses: actions/upload-artifact@v3
       with:
-        sarif_file: checkov_results.sarif
+        name: checkov-sarif-report
+        path: checkov-report.sarif
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
@@ -68,37 +60,35 @@ jobs:
 
     - name: Terraform Init
       run: terraform init
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
     - name: Terraform Format Check
       run: terraform fmt -check
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
     - name: Terraform Validate
       run: terraform validate
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
     - name: Terraform Plan
       run: terraform plan -out=tfplan
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
     - name: Terraform Apply
       if: github.event_name == 'push'
       run: terraform apply -auto-approve tfplan
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
     - name: Terraform Output
       run: terraform output
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
   terraform-destroy:
     runs-on: ubuntu-latest
     if: github.event.inputs.destroy == 'true'
 
     env:
-      TF_LOG: INFO
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      TERRAFORM_DIR: ./Terra
+      TERRAFORM_DIRECTORY: ./Terra
 
     steps:
     - name: Checkout code
@@ -118,8 +108,8 @@ jobs:
 
     - name: Terraform Init
       run: terraform init
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
     - name: Terraform Destroy
       run: terraform destroy -auto-approve
-      working-directory: ${{ env.TERRAFORM_DIR }}
+      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
