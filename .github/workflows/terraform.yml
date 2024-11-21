@@ -41,18 +41,19 @@ jobs:
         directory: ${{ env.TERRAFORM_DIR }}
         output_format: sarif,json
         external_checks_dir: .checkov/custom_policies
+        output_file_path: ./checkov_reports
       continue-on-error: true
 
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v3
       with:
-        sarif_file: checkov.sarif
+        sarif_file: checkov_reports/results.sarif
 
     - name: Upload Checkov JSON Report
       uses: actions/upload-artifact@v3
       with:
         name: checkov-report
-        path: checkov-results.json
+        path: checkov_reports/results.json
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
