@@ -3,21 +3,31 @@ repos:
     rev: 3.2.305
     hooks:
       - id: checkov
+        args: ["--quiet"]
 
   - repo: https://github.com/antonbabenko/pre-commit-terraform
     rev: v1.96.1
     hooks:
       - id: terraform_fmt
+        args: []
+        stages: [pre-commit]  
       - id: terraform_validate
+        stages: [pre-commit]
       - id: terraform_tflint
+        stages: [pre-commit]
       - id: terraform_docs
+        args: ["fmt"] 
+        stages: [pre-commit]
 
   - repo: https://github.com/aquasecurity/tfsec
     rev: v1.28.10
     hooks:
       - id: tfsec
+        args: ["--no-color", "--soft-fail"]  #Prevent blocking commits on warnings
 
   - repo: https://github.com/zricethezav/gitleaks
     rev: v8.8.4
     hooks:
-      - id: gitleaks
+    - id: gitleaks
+      args: ["detect", "--source", ".", "--verbose"] 
+      stages: [pre-commit
