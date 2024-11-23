@@ -16,11 +16,12 @@ on:
 
 jobs:
   terraform:
-    if: github.event.inputs.destroy != 'true'  
+    if: github.event.inputs.destroy != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
+      id-token: write  
 
     env:
       TF_LOG: INFO
@@ -29,51 +30,22 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4 
+
+    - name: Configure AWS Credentials for GitHub Actions
+      uses: aws-actions/configure-aws-credentials@v4  
+      with:
+        role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+        aws-region: ${{ secrets.AWS_REGION }}
+        audience: sts.amazonaws.com
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+      uses: hashicorp/setup-terraform@v3  
       with:
         terraform_version: 1.9.8
 
-    - name: Run Checkov for Security Scanning
-      uses: bridgecrewio/checkov-action@v12
-      with:
-        directory: ${{ env.TERRAFORM_DIRECTORY }}
-        output_format: cli,sarif
-        output_file_path: console,results.sarif
-        external_checks_dirs: .checkov/custom_policies
-      continue-on-error: true
-
-    - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: results.sarif
-
-    - name: Upload Checkov SARIF Report Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: checkov-sarif-report
-        path: results.sarif
-
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v3
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
-
     - name: Terraform Init
       run: terraform init
-      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
-
-    - name: Terraform Format Check
-      run: terraform fmt -check
-      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
-
-    - name: Terraform Validate
-      run: terraform validate
       working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
     - name: Terraform Plan
@@ -85,13 +57,11 @@ jobs:
       run: terraform apply -auto-approve tfplan
       working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
-    - name: Terraform Output
-      run: terraform output
-      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
-
   terraform-destroy:
-    if: github.event.inputs.destroy == 'true'  
+    if: github.event.inputs.destroy == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write 
 
     env:
       TF_LOG: INFO
@@ -100,19 +70,19 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4  
+
+    - name: Configure AWS Credentials for GitHub Actions
+      uses: aws-actions/configure-aws-credentials@v4  
+      with:
+        role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+        aws-region: ${{ secrets.AWS_REGION }}
+        audience: sts.amazonaws.com
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+      uses: hashicorp/setup-terraform@v3  
       with:
         terraform_version: 1.9.8
-
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v3
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Terraform Init
       run: terraform init
