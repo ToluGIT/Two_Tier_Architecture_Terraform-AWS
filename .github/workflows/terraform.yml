@@ -30,12 +30,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 
+      uses: actions/checkout@v4  # Updated version
 
     - name: Configure AWS Credentials for GitHub Actions
       uses: aws-actions/configure-aws-credentials@v4  
       with:
-        role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+        role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}  
         aws-region: ${{ secrets.AWS_REGION }}
         audience: sts.amazonaws.com
 
@@ -43,6 +43,30 @@ jobs:
       uses: hashicorp/setup-terraform@v3  
       with:
         terraform_version: 1.9.8
+
+    - name: Run Checkov for Security Scanning
+      uses: bridgecrewio/checkov-action@v12
+      with:
+        directory: ${{ env.TERRAFORM_DIRECTORY }}
+        output_format: cli,sarif
+        output_file_path: console,results.sarif
+        external_checks_dirs: .checkov/custom_policies
+      continue-on-error: true
+
+    - name: List Files After Checkov
+      run: ls -l
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: results.sarif
+
+    - name: Upload Checkov SARIF Report Artifact
+      uses: actions/upload-artifact@v4 
+      with:
+        name: checkov-sarif-report
+        path: results.sarif
 
     - name: Terraform Init
       run: terraform init
@@ -57,11 +81,15 @@ jobs:
       run: terraform apply -auto-approve tfplan
       working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
+    - name: Terraform Output
+      run: terraform output
+      working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+
   terraform-destroy:
     if: github.event.inputs.destroy == 'true'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write 
+      id-token: write  
 
     env:
       TF_LOG: INFO
@@ -75,12 +103,12 @@ jobs:
     - name: Configure AWS Credentials for GitHub Actions
       uses: aws-actions/configure-aws-credentials@v4  
       with:
-        role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+        role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}  
         aws-region: ${{ secrets.AWS_REGION }}
         audience: sts.amazonaws.com
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3  
+      uses: hashicorp/setup-terraform@v3 
       with:
         terraform_version: 1.9.8
 
